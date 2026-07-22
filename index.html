@@ -186,13 +186,14 @@
 
     <div class="container">
         <h1>📖 背单词助手</h1>
-        <p class="subtitle">小组协作 · 多分组版</p >
+        <p class="subtitle">小组协作 · 多分组版</p>
 
         <!-- 分组选择 -->
         <div class="set-selector" id="setSelector">
             <button class="set-btn active" data-set="0">📘 四级词汇</button>
             <button class="set-btn" data-set="1">📗 六级词汇</button>
             <button class="set-btn" data-set="2">📕 考研词汇</button>
+            <button class="set-btn" data-set="3">🌍 雅思词汇</button>
         </div>
 
         <div class="word-card" id="wordCard">
@@ -215,13 +216,13 @@
 
         <div class="finish-box" id="finishBox">
             <h2>🎉 全部背完啦！</h2>
-            <p style="color:#718096;">太棒了，点击「重来」再复习一遍吧</p >
+            <p style="color:#718096;">太棒了，点击「重来」再复习一遍吧</p>
         </div>
     </div>
 
     <script>
         // ================================================================
-        // 第一部分：多组单词数据（组员可以继续扩充分组）
+        // 四组完整单词数据（四级、六级、考研、雅思）
         // ================================================================
         const WORD_SETS = [{
             name: "四级词汇",
@@ -322,109 +323,124 @@
         }];
 
         // ================================================================
-        // 第二部分：游戏逻辑（完全不用动）
+        // 游戏状态与逻辑
         // ================================================================
         let currentSetIndex = 0;
-        let currentWords = [];
         let currentIndex = 0;
         let totalCount = 0;
         let correctCount = 0;
         let isFinished = false;
 
-        // DOM 元素
-        const wordEn = document.getElementById('word-en');
-        const wordZh = document.getElementById('word-zh');
+        const wordEnEl = document.getElementById('word-en');
+        const wordZhEl = document.getElementById('word-zh');
         const progressText = document.getElementById('progress-text');
-        const totalSpan = document.getElementById('totalCount');
-        const correctSpan = document.getElementById('correctCount');
-        const rateSpan = document.getElementById('rateCount');
+        const totalCountEl = document.getElementById('totalCount');
+        const correctCountEl = document.getElementById('correctCount');
+        const rateCountEl = document.getElementById('rateCount');
         const finishBox = document.getElementById('finishBox');
         const wordCard = document.getElementById('wordCard');
         const setBtns = document.querySelectorAll('.set-btn');
 
-        // 加载分组
-        function loadSet(index) {
-            currentSetIndex = index;
-            currentWords = WORD_SETS[index].words.slice(); // 复制数组
+        function getCurrentWords() {
+            return WORD_SETS[currentSetIndex].words;
+        }
+
+        function getCurrentSetName() {
+            return WORD_SETS[currentSetIndex].name;
+        }
+
+        function renderWord() {
+            const words = getCurrentWords();
+            if (isFinished || currentIndex >= words.length) {
+                wordCard.style.display = 'none';
+                finishBox.style.display = 'block';
+                return;
+            }
+            wordCard.style.display = 'flex';
+            finishBox.style.display = 'none';
+
+            const word = words[currentIndex];
+            wordEnEl.textContent = word.en;
+            wordZhEl.textContent = word.zh;
+            progressText.textContent = `第 ${currentIndex + 1} / ${words.length} 个 [${getCurrentSetName()}]`;
+        }
+
+        function updateStats() {
+            totalCountEl.textContent = totalCount;
+            correctCountEl.textContent = correctCount;
+            const rate = totalCount === 0 ? 0 : Math.round((correctCount / totalCount) * 100);
+            rateCountEl.textContent = rate + '%';
+        }
+
+        function handleKnow() {
+            const words = getCurrentWords();
+            if (isFinished || currentIndex >= words.length) return;
+            totalCount++;
+            correctCount++;
+            currentIndex++;
+            updateStats();
+            checkFinish();
+            renderWord();
+        }
+
+        function handleDontKnow() {
+            const words = getCurrentWords();
+            if (isFinished || currentIndex >= words.length) return;
+            totalCount++;
+            currentIndex++;
+            updateStats();
+            checkFinish();
+            renderWord();
+        }
+
+        function checkFinish() {
+            const words = getCurrentWords();
+            if (currentIndex >= words.length) {
+                isFinished = true;
+                renderWord();
+            }
+        }
+
+        function resetGame() {
             currentIndex = 0;
             totalCount = 0;
             correctCount = 0;
             isFinished = false;
             finishBox.style.display = 'none';
             wordCard.style.display = 'flex';
-            // 高亮按钮
+            updateStats();
+            renderWord();
+        }
+
+        function switchSet(index) {
+            if (index === currentSetIndex) {
+                resetGame();
+                return;
+            }
+            currentSetIndex = index;
             setBtns.forEach((btn, i) => {
                 btn.classList.toggle('active', i === index);
             });
-            renderWord();
+            currentIndex = 0;
+            totalCount = 0;
+            correctCount = 0;
+            isFinished = false;
+            finishBox.style.display = 'none';
+            wordCard.style.display = 'flex';
             updateStats();
-        }
-
-        // 显示当前单词
-        function renderWord() {
-            if (currentIndex < currentWords.length) {
-                const w = currentWords[currentIndex];
-                wordEn.textContent = w.en;
-                wordZh.textContent = w.zh;
-                progressText.textContent = `第 ${currentIndex+1} / ${currentWords.length} 个`;
-                wordCard.style.display = 'flex';
-                finishBox.style.display = 'none';
-            } else {
-                // 全部完成
-                wordCard.style.display = 'none';
-                finishBox.style.display = 'block';
-                isFinished = true;
-            }
-        }
-
-        // 更新统计
-        function updateStats() {
-            totalSpan.textContent = totalCount;
-            correctSpan.textContent = correctCount;
-            const rate = totalCount === 0 ? 0 : Math.round((correctCount / totalCount) * 100);
-            rateSpan.textContent = rate + '%';
-        }
-
-        // 认识
-        function handleKnow() {
-            if (isFinished || currentIndex >= currentWords.length) return;
-            totalCount++;
-            correctCount++;
-            currentIndex++;
             renderWord();
-            updateStats();
         }
 
-        // 不认识
-        function handleDontKnow() {
-            if (isFinished || currentIndex >= currentWords.length) return;
-            totalCount++;
-            // 把当前单词放到数组末尾（重新学习）
-            const word = currentWords.splice(currentIndex, 1)[0];
-            currentWords.push(word);
-            // 不增加 currentIndex，因为原位置被下一个单词补上
-            renderWord();
-            updateStats();
-        }
-
-        // 重置当前分组
-        function resetGame() {
-            loadSet(currentSetIndex);
-        }
-
-        // 切换分组事件
-        setBtns.forEach(btn => {
-            btn.addEventListener('click', function () {
-                const idx = parseInt(this.dataset.set);
-                if (idx !== currentSetIndex) {
-                    loadSet(idx);
-                }
+        setBtns.forEach((btn) => {
+            btn.addEventListener('click', function() {
+                const setIndex = parseInt(this.dataset.set);
+                switchSet(setIndex);
             });
         });
 
-        // 初始化
-        loadSet(0);
+        renderWord();
+        updateStats();
+        console.log('📖 背单词助手已启动！包含四级、六级、考研、雅思共4组词库');
     </script>
-
 </body>
 </html>
