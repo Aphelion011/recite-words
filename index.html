@@ -13,7 +13,7 @@
         }
         body {
             font-family: 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(145deg, #f5f7fa 0%, #e9edf5 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -21,13 +21,14 @@
             padding: 20px;
         }
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
             padding: 30px 40px;
             border-radius: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.10);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.30);
             text-align: center;
             max-width: 560px;
             width: 100%;
+            backdrop-filter: blur(10px);
         }
         h1 {
             font-size: 26px;
@@ -115,11 +116,11 @@
             flex: 1;
         }
         .btn-know {
-            background: #48bb78;
+            background: #667eea;
             color: white;
         }
         .btn-know:hover {
-            background: #38a169;
+            background: #5a67d8;
             transform: scale(1.02);
         }
         .btn-dont {
@@ -185,7 +186,7 @@
 
     <div class="container">
         <h1>📖 背单词助手</h1>
-        <p class="subtitle">小组协作 · 多分组版</p>
+        <p class="subtitle">小组协作 · 多分组版</p >
 
         <!-- 分组选择 -->
         <div class="set-selector" id="setSelector">
@@ -214,7 +215,7 @@
 
         <div class="finish-box" id="finishBox">
             <h2>🎉 全部背完啦！</h2>
-            <p style="color:#718096;">太棒了，点击「重来」再复习一遍吧</p>
+            <p style="color:#718096;">太棒了，点击「重来」再复习一遍吧</p >
         </div>
     </div>
 
@@ -310,152 +311,114 @@
                 { en: "local", zh: "当地的" },
                 { en: "major", zh: "主要的；专业" },
                 { en: "network", zh: "网络" },
-                { en: "opportunity", zh: "机会" },
-                { en: "participate", zh: "参加" },
-                { en: "recognize", zh: "认出；承认" },
-                { en: "significant", zh: "重要的" },
-                { en: "tradition", zh: "传统" },
-                { en: "unique", zh: "独特的" },
-                { en: "voluntary", zh: "自愿的" }
+                { en: "opportunity", zh: "机会" }
             ]
         }];
 
         // ================================================================
-        // 第二部分：状态
+        // 第二部分：游戏逻辑（完全不用动）
         // ================================================================
-        let currentSetIndex = 0;        // 当前第几组
+        let currentSetIndex = 0;
+        let currentWords = [];
         let currentIndex = 0;
         let totalCount = 0;
         let correctCount = 0;
         let isFinished = false;
 
-        // DOM
-        const wordEnEl = document.getElementById('word-en');
-        const wordZhEl = document.getElementById('word-zh');
+        // DOM 元素
+        const wordEn = document.getElementById('word-en');
+        const wordZh = document.getElementById('word-zh');
         const progressText = document.getElementById('progress-text');
-        const totalCountEl = document.getElementById('totalCount');
-        const correctCountEl = document.getElementById('correctCount');
-        const rateCountEl = document.getElementById('rateCount');
+        const totalSpan = document.getElementById('totalCount');
+        const correctSpan = document.getElementById('correctCount');
+        const rateSpan = document.getElementById('rateCount');
         const finishBox = document.getElementById('finishBox');
         const wordCard = document.getElementById('wordCard');
         const setBtns = document.querySelectorAll('.set-btn');
 
-        // 获取当前组的单词列表
-        function getCurrentWords() {
-            return WORD_SETS[currentSetIndex].words;
-        }
-
-        // 获取当前组名称
-        function getCurrentSetName() {
-            return WORD_SETS[currentSetIndex].name;
-        }
-
-        // ================================================================
-        // 第三部分：核心函数
-        // ================================================================
-        function renderWord() {
-            const words = getCurrentWords();
-            if (isFinished || currentIndex >= words.length) {
-                wordCard.style.display = 'none';
-                finishBox.style.display = 'block';
-                return;
-            }
-            wordCard.style.display = 'flex';
-            finishBox.style.display = 'none';
-
-            const word = words[currentIndex];
-            wordEnEl.textContent = word.en;
-            wordZhEl.textContent = word.zh;
-            progressText.textContent = `第 ${currentIndex + 1} / ${words.length} 个 [${getCurrentSetName()}]`;
-        }
-
-        function updateStats() {
-            totalCountEl.textContent = totalCount;
-            correctCountEl.textContent = correctCount;
-            const rate = totalCount === 0 ? 0 : Math.round((correctCount / totalCount) * 100);
-            rateCountEl.textContent = rate + '%';
-        }
-
-        function handleKnow() {
-            const words = getCurrentWords();
-            if (isFinished || currentIndex >= words.length) return;
-            totalCount++;
-            correctCount++;
-            currentIndex++;
-            updateStats();
-            checkFinish();
-            renderWord();
-        }
-
-        function handleDontKnow() {
-            const words = getCurrentWords();
-            if (isFinished || currentIndex >= words.length) return;
-            totalCount++;
-            currentIndex++;
-            updateStats();
-            checkFinish();
-            renderWord();
-        }
-
-        function checkFinish() {
-            const words = getCurrentWords();
-            if (currentIndex >= words.length) {
-                isFinished = true;
-                renderWord();
-            }
-        }
-
-        function resetGame() {
+        // 加载分组
+        function loadSet(index) {
+            currentSetIndex = index;
+            currentWords = WORD_SETS[index].words.slice(); // 复制数组
             currentIndex = 0;
             totalCount = 0;
             correctCount = 0;
             isFinished = false;
             finishBox.style.display = 'none';
             wordCard.style.display = 'flex';
-            updateStats();
-            renderWord();
-        }
-
-        // ================================================================
-        // 第四部分：切换分组
-        // ================================================================
-        function switchSet(index) {
-            if (index === currentSetIndex) {
-                // 如果点的是同一组，只重置进度
-                resetGame();
-                return;
-            }
-            currentSetIndex = index;
-            // 更新按钮高亮
+            // 高亮按钮
             setBtns.forEach((btn, i) => {
                 btn.classList.toggle('active', i === index);
             });
-            // 重置所有状态
-            currentIndex = 0;
-            totalCount = 0;
-            correctCount = 0;
-            isFinished = false;
-            finishBox.style.display = 'none';
-            wordCard.style.display = 'flex';
-            updateStats();
             renderWord();
+            updateStats();
         }
 
-        // 绑定切换按钮事件
-        setBtns.forEach((btn) => {
-            btn.addEventListener('click', function() {
-                const setIndex = parseInt(this.dataset.set);
-                switchSet(setIndex);
+        // 显示当前单词
+        function renderWord() {
+            if (currentIndex < currentWords.length) {
+                const w = currentWords[currentIndex];
+                wordEn.textContent = w.en;
+                wordZh.textContent = w.zh;
+                progressText.textContent = `第 ${currentIndex+1} / ${currentWords.length} 个`;
+                wordCard.style.display = 'flex';
+                finishBox.style.display = 'none';
+            } else {
+                // 全部完成
+                wordCard.style.display = 'none';
+                finishBox.style.display = 'block';
+                isFinished = true;
+            }
+        }
+
+        // 更新统计
+        function updateStats() {
+            totalSpan.textContent = totalCount;
+            correctSpan.textContent = correctCount;
+            const rate = totalCount === 0 ? 0 : Math.round((correctCount / totalCount) * 100);
+            rateSpan.textContent = rate + '%';
+        }
+
+        // 认识
+        function handleKnow() {
+            if (isFinished || currentIndex >= currentWords.length) return;
+            totalCount++;
+            correctCount++;
+            currentIndex++;
+            renderWord();
+            updateStats();
+        }
+
+        // 不认识
+        function handleDontKnow() {
+            if (isFinished || currentIndex >= currentWords.length) return;
+            totalCount++;
+            // 把当前单词放到数组末尾（重新学习）
+            const word = currentWords.splice(currentIndex, 1)[0];
+            currentWords.push(word);
+            // 不增加 currentIndex，因为原位置被下一个单词补上
+            renderWord();
+            updateStats();
+        }
+
+        // 重置当前分组
+        function resetGame() {
+            loadSet(currentSetIndex);
+        }
+
+        // 切换分组事件
+        setBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const idx = parseInt(this.dataset.set);
+                if (idx !== currentSetIndex) {
+                    loadSet(idx);
+                }
             });
         });
 
-        // ================================================================
-        // 第五部分：初始化
-        // ================================================================
-        renderWord();
-        updateStats();
-        console.log('📖 背单词助手（多分组版）已启动！');
-        console.log('👥 目前有 ' + WORD_SETS.length + ' 组单词，共 ' + WORD_SETS.reduce((acc, cur) => acc + cur.words.length, 0) + ' 个词');
+        // 初始化
+        loadSet(0);
     </script>
+
 </body>
 </html>
