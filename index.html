@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📖 背单词助手</title>
+    <style>
+        /* ========== 全局样式 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(145deg, #f5f7fa 0%, #e9edf5 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            padding: 40px 50px;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.10);
+            text-align: center;
+            max-width: 520px;
+            width: 100%;
+            transition: 0.3s;
+        }
+        h1 {
+            font-size: 28px;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #edf2f7;
+            padding-bottom: 15px;
+        }
+
+        /* ========== 单词卡片 ========== */
+        .word-card {
+            background: #f7fafc;
+            border-radius: 28px;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+            border: 2px dashed #e2e8f0;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        #word-en {
+            font-size: 42px;
+            font-weight: 700;
+            color: #1a202c;
+            letter-spacing: 1px;
+        }
+        #word-zh {
+            font-size: 22px;
+            color: #4a5568;
+            margin-top: 10px;
+            font-weight: 400;
+        }
+        #progress-text {
+            font-size: 14px;
+            color: #a0aec0;
+            margin-top: 12px;
+        }
+
+        /* ========== 按钮 ========== */
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        .btn {
+            border: none;
+            padding: 14px 32px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            flex: 1;
+        }
+        .btn-know {
+            background: #48bb78;
+            color: white;
+        }
+        .btn-know:hover {
+            background: #38a169;
+            transform: scale(1.02);
+        }
+        .btn-dont {
+            background: #fc8181;
+            color: white;
+        }
+        .btn-dont:hover {
+            background: #f56565;
+            transform: scale(1.02);
+        }
+        .btn-reset {
+            background: #edf2f7;
+            color: #4a5568;
+            font-size: 14px;
+            padding: 10px 24px;
+            box-shadow: none;
+            flex: 0.3;
+        }
+        .btn-reset:hover {
+            background: #e2e8f0;
+        }
+
+        /* ========== 统计面板 ========== */
+        .stats {
+            background: #f7fafc;
+            border-radius: 20px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-around;
+            font-size: 16px;
+            color: #2d3748;
+            border: 1px solid #edf2f7;
+        }
+        .stats span {
+            font-weight: 700;
+            color: #2b6cb0;
+        }
+        .stats .highlight-green {
+            color: #38a169;
+        }
+        .stats .highlight-red {
+            color: #e53e3e;
+        }
+
+        /* ========== 完成状态 ========== */
+        .finish-box {
+            display: none;
+            padding: 20px 0;
+        }
+        .finish-box h2 {
+            color: #38a169;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📖 每日背单词</h1>
+        <p class="subtitle">小组协作 · 开源实践</p>
+
+        <!-- 单词卡片 -->
+        <div class="word-card" id="wordCard">
+            <div id="word-en">Hello</div>
+            <div id="word-zh">你好</div>
+            <div id="progress-text">第 1 / 20 个</div>
+        </div>
+
+        <!-- 按钮组 -->
+        <div class="btn-group">
+            <button class="btn btn-know" onclick="handleKnow()">✅ 认识</button>
+            <button class="btn btn-dont" onclick="handleDontKnow()">❌ 不认识</button>
+            <button class="btn btn-reset" onclick="resetGame()">↺ 重来</button>
+        </div>
+
+        <!-- 统计面板 -->
+        <div class="stats">
+            <div>📚 已学 <span id="totalCount">0</span></div>
+            <div>✅ 正确 <span id="correctCount" class="highlight-green">0</span></div>
+            <div>🎯 正确率 <span id="rateCount">0%</span></div>
+        </div>
+
+        <!-- 完成界面（隐藏） -->
+        <div class="finish-box" id="finishBox">
+            <h2>🎉 全部背完啦！</h2>
+            <p style="color:#718096;">太棒了，点击「重来」再复习一遍吧</p>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // 第一部分：单词数据（组员B 后续可以通过 PR 扩充或替换）
+        // ================================================================
+        const WORD_DATA = [
+            { en: "abandon", zh: "放弃；遗弃" },
+            { en: "brilliant", zh: "灿烂的；杰出的" },
+            { en: "capture", zh: "捕获；夺取" },
+            { en: "diverse", zh: "不同的；多样的" },
+            { en: "eager", zh: "渴望的；热切的" },
+            { en: "fragile", zh: "脆弱的；易碎的" },
+            { en: "generous", zh: "慷慨的；大方的" },
+            { en: "humble", zh: "谦虚的；卑微的" },
+            { en: "ignite", zh: "点燃；激起" },
+            { en: "jungle", zh: "丛林；密林" },
+            { en: "keen", zh: "敏锐的；热衷的" },
+            { en: "leap", zh: "跳跃；飞跃" },
+            { en: "mature", zh: "成熟的；深思熟虑的" },
+            { en: "noble", zh: "高贵的；崇高的" },
+            { en: "obstacle", zh: "障碍；阻碍" },
+            { en: "precious", zh: "珍贵的；宝贵的" },
+            { en: "radiant", zh: "光芒四射的；容光焕发的" },
+            { en: "sincere", zh: "真诚的；诚恳的" },
+            { en: "thrive", zh: "繁荣；茁壮成长" },
+            { en: "vivid", zh: "生动的；鲜明的" }
+        ];
+
+        // ================================================================
+        // 第二部分：游戏状态（组员C 后续可以通过 PR 优化逻辑）
+        // ================================================================
+        let currentIndex = 0;           // 当前第几个（从0开始）
+        let totalCount = 0;             // 总共学了多少个
+        let correctCount = 0;           // 认识（正确）了多少个
+        let isFinished = false;         // 是否全部学完
+
+        // DOM 缓存
+        const wordEnEl = document.getElementById('word-en');
+        const wordZhEl = document.getElementById('word-zh');
+        const progressText = document.getElementById('progress-text');
+        const totalCountEl = document.getElementById('totalCount');
+        const correctCountEl = document.getElementById('correctCount');
+        const rateCountEl = document.getElementById('rateCount');
+        const finishBox = document.getElementById('finishBox');
+        const wordCard = document.getElementById('wordCard');
+
+        // ================================================================
+        // 第三部分：核心函数（组员C/D 后续可以扩展）
+        // ================================================================
+
+        /** 刷新界面：显示当前单词 */
+        function renderWord() {
+            if (isFinished || currentIndex >= WORD_DATA.length) {
+                // 完成状态
+                wordCard.style.display = 'none';
+                finishBox.style.display = 'block';
+                return;
+            }
+
+            wordCard.style.display = 'flex';
+            finishBox.style.display = 'none';
+
+            const word = WORD_DATA[currentIndex];
+            wordEnEl.textContent = word.en;
+            wordZhEl.textContent = word.zh;
+            progressText.textContent = `第 ${currentIndex + 1} / ${WORD_DATA.length} 个`;
+        }
+
+        /** 更新统计面板 */
+        function updateStats() {
+            totalCountEl.textContent = totalCount;
+            correctCountEl.textContent = correctCount;
+            const rate = totalCount === 0 ? 0 : Math.round((correctCount / totalCount) * 100);
+            rateCountEl.textContent = rate + '%';
+        }
+
+        /** 处理「认识」点击 */
+        function handleKnow() {
+            if (isFinished || currentIndex >= WORD_DATA.length) return;
+            totalCount++;
+            correctCount++;
+            currentIndex++;
+            updateStats();
+            checkFinish();
+            renderWord();
+        }
+
+        /** 处理「不认识」点击 */
+        function handleDontKnow() {
+            if (isFinished || currentIndex >= WORD_DATA.length) return;
+            totalCount++;
+            currentIndex++;
+            updateStats();
+            checkFinish();
+            renderWord();
+        }
+
+        /** 检查是否全部学完 */
+        function checkFinish() {
+            if (currentIndex >= WORD_DATA.length) {
+                isFinished = true;
+                renderWord(); // 触发完成界面
+            }
+        }
+
+        /** 重置游戏（组员D 后续可以增加「是否确认重置」的弹窗） */
+        function resetGame() {
+            currentIndex = 0;
+            totalCount = 0;
+            correctCount = 0;
+            isFinished = false;
+            finishBox.style.display = 'none';
+            wordCard.style.display = 'flex';
+            updateStats();
+            renderWord();
+        }
+
+        // ================================================================
+        // 第四部分：初始化
+        // ================================================================
+        renderWord();
+        updateStats();
+
+        // 小彩蛋：在浏览器控制台打印提示（组员们可以看看）
+        console.log('📖 背单词助手已启动！');
+        console.log('👥 组员们：通过 PR 来扩充单词库或优化样式吧！');
+    </script>
+
+</body>
+</html>
